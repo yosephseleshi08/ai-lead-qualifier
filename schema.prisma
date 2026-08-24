@@ -1,0 +1,213 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Tenant {
+  id                   String   @id @default(uuid())
+  name                 String
+  slug                 String   @unique
+  plan                 String   @default("STARTER")
+  billingStatus        String   @default("ACTIVE")
+  stripeCustomerId     String?
+  stripeSubscriptionId String?
+  settings             Json     @default("{\"autoAssign\":true,\"hotLeadAlert\":true,\"scoreThresholdHot\":80,\"scoreThresholdWarm\":60,\"decayThresholdHours\":48}")
+  whiteLabel           Json?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  users        User[]
+  leads        Lead[]
+  sequences    Sequence[]
+  integrations Integration[]
+  auditLogs    AuditLog[]
+}
+
+model User {
+  id                   String   @id @default(uuid())
+  tenantId             String
+  email                String   @unique
+  name                 String?
+  passwordHash         String
+  role                 String   @default("SALES")
+  status               String   @default("ACTIVE")
+  emailVerified        Boolean  @default(false)
+  emailVerifyToken     String?
+  passwordResetToken   String?
+  passwordResetExpires DateTime?
+  inviteToken          String?
+  inviteExpires        DateTime?
+  currentLoad          Int      @default(0)
+  maxLeads             Int      @default(50)
+  territory            String?
+  specialties          String[] @default([])
+  settings             Json?
+  performance          Json?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  tenant       Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  assignedLeads Lead[]
+  leadEvents   LeadEvent[]
+}
+
+model Lead {
+  id                   String   @id @default(uuid())
+  tenantId             String
+  email                String
+  name                 String?
+  company              String?
+  title                String?
+  phone                String?
+  source               String   @default("manual")
+  linkedinUrl          String?
+  industry             String?
+  companySize          String?
+  estimatedRevenue     String?
+  technologies         String?
+  twitterHandle        String?
+  avatarUrl            String?
+  country              String?
+  state                String?
+  emailValid           Boolean?
+  emailScore           Int?
+  proxycurlData        Json?
+  enrichmentSource     String[] @default([])
+
+  score                Int      @default(0)
+  classification       String   @default("COLD")
+  conversionProb       Float    @default(0)
+  sentiment            Float    @default(0)
+  urgencyScore         Int      @default(0)
+  intentScore          Int      @default(0)
+  budgetScore          Int      @default(0)
+  painScore            Int      @default(0)
+  authorityScore       Int      @default(0)
+  timingScore          Int      @default(0)
+  aiSummary            String?  @db.Text
+  talkingPoints        String[] @default([])
+  actionItems          String[] @default([])
+  objections           String[] @default([])
+  competitorMentions   String[] @default([])
+  buyingSignals        String[] @default([])
+  riskFactors          String[] @default([])
+
+  status               String   @default("NEW")
+  assignedToId         String?
+  assignedAt           DateTime?
+  assignedBy           String?
+  lastActivityAt       DateTime @default(now())
+  decayScore           Int      @default(0)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  tenant              Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  assignedTo          User?                @relation(fields: [assignedToId], references: [id])
+  messages            LeadMessage[]
+  events              LeadEvent[]
+  sequenceEnrollments SequenceEnrollment[]
+
+  @@index([tenantId])
+  @@index([assignedToId])
+  @@index([status])
+  @@index([classification])
+  @@index([score])
+  @@index([email])
+}
+
+model LeadMessage {
+  id        String   @id @default(uuid())
+  leadId    String
+  content   String   @db.Text
+  type      String   @default("SYSTEM")
+  direction String   @default("INBOUND")
+  createdAt DateTime @default(now())
+
+  lead Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([leadId])
+  @@index([createdAt])
+}
+
+model LeadEvent {
+  id          String   @id @default(uuid())
+  leadId      String
+  userId      String?
+  type        String
+  description String?  @db.Text
+  createdAt   DateTime @default(now())
+
+  lead Lead  @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([leadId])
+  @@index([createdAt])
+}
+
+model Sequence {
+  id                String   @id @default(uuid())
+  tenantId          String
+  name              String
+  description       String?
+  status            String   @default("ACTIVE")
+  triggerType       String
+  triggerConditions Json?
+  steps             Json     @default("[]")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  tenant      Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  enrollments SequenceEnrollment[]
+
+  @@index([tenantId])
+}
+
+model SequenceEnrollment {
+  id          String   @id @default(uuid())
+  sequenceId  String
+  leadId      String
+  status      String   @default("ACTIVE")
+  currentStep Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  sequence Sequence @relation(fields: [sequenceId], references: [id], onDelete: Cascade)
+  lead     Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@unique([sequenceId, leadId])
+  @@index([leadId])
+}
+
+model Integration {
+  id        String   @id @default(uuid())
+  tenantId  String
+  type      String
+  status    String   @default("PENDING")
+  config    Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([type])
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  tenantId   String
+  userId     String?
+  action     String
+  entityType String?
+  ip         String?
+  createdAt  DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([createdAt])
+}
