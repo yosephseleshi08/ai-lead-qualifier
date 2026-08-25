@@ -1,25 +1,50 @@
 const nodemailer = require('nodemailer');
 const { logger } = require('../utils/logger');
 
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: parseInt(process.env.SMTP_PORT) || 587,
-  secure: false,
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-  pool: true,
-  maxConnections: 5,
-});
+// ─── Email Transporter ───────────────────────────────────────────────
 
-transporter.verify((error, success) => {
-  if (error) {
-    logger.error('SMTP transporter verification failed', { error: error.message });
-  } else {
-    logger.info('SMTP transporter ready');
+// Check if we should use Resend (preferred) or SMTP
+const useResend = !!process.env.RESEND_API_KEY;
+
+let transporter;
+let resendClient;
+
+if (useResend) {
+  // Use Resend API
+  try {
+    const { Resend } = require('resend');
+    resendClient = new Resend({ apiKey: process.env.RESEND_API_KEY });
+    logger.info('Resend email client initialized');
+  } catch (err) {
+    logger.error('Failed to initialize Resend', { error: err.message });
+    useResend = false;
   }
-});
+}
+
+if (!useResend) {
+  // Use SMTP (nodemailer)
+  transporter = nodemailer.createTransport({
+    host: process.env.SMTP_HOST,
+    port: parseInt(process.env.SMTP_PORT) || 587,
+    secure: process.env.SMTP_SECURE === 'true' || false,
+    auth: {
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS,
+    },
+    pool: true,
+    maxConnections: 5,
+  });
+
+  transporter.verify((error, success) => {
+    if (error) {
+      logger.error('SMTP transporter verification failed', { error: error.message });
+    } else {
+      logger.info('SMTP transporter ready');
+    }
+  });
+}
+
+// ─── Email Templates ──────────────────────────────────────────────────
 
 const templates = {
   hotLeadAlert: (data) => ({
@@ -77,19 +102,46 @@ const templates = {
   }),
 };
 
+// ─── Send Email ──────────────────────────────────────────────────────
+
 const sendEmail = async (to, templateName, data, options = {}) => {
   try {
     const template = templates[templateName];
     if (!template) throw new Error(`Template ${templateName} not found`);
     const { subject, html } = template(data);
-    const info = await transporter.sendMail({
-      from: `"${process.env.APP_NAME || 'AI Lead Qualifier'}" <${process.env.EMAIL_FROM}>`,
-      to,
-      subject,
-      html,
-      text: options.text || html.replace(/<[^>]*>/g, ' '),
-      attachments: options.attachments,
-    });
+    const fromEmail = process.env.EMAIL_FROM || 'noreply@example.com';
+    const appName = process.env.APP_NAME || 'AI Lead Qualifier';
+
+    let info;
+
+    if (useResend && resendClient) {
+      // Send via Resend
+      const { data: resendData, error } = await resendClient.emails.send({
+        from: `"${appName}" <${fromEmail}>`,
+        to: [to],
+        subject: subject,
+        html: html,
+        text: options.text || html.replace(/<[^>]*>/g, ' '),
+      });
+      
+      if (error) throw new Error(error.message);
+      info = { messageId: resendData?.id };
+    } else if (transporter) {
+      // Send via SMTP
+      info = await transporter.sendMail({
+        from: `"${appName}" <${fromEmail}>`,
+        to,
+        subject,
+        html,
+        text: options.text || html.replace(/<[^>]*>/g, ' '),
+        attachments: options.attachments,
+      });
+    } else {
+      // No email provider configured — log only
+      logger.info(`[EMAIL SIMULATED] To: ${to} | Subject: ${subject}`);
+      return { success: true, messageId: 'simulated-' + Date.now() };
+    }
+
     logger.info(`Email sent: ${templateName} to ${to}`, { messageId: info.messageId });
     return { success: true, messageId: info.messageId };
   } catch (error) {
