@@ -1,14 +1,13 @@
 {
   "name": "ai-lead-qualifier-backend",
   "version": "2.1.0",
-  "description": "Enterprise AI Lead Qualification Platform — BYOK Edition",
+  "description": "Enterprise AI Lead Qualification Platform",
   "main": "src/app.js",
   "scripts": {
     "start": "node src/app.js",
     "dev": "nodemon src/app.js",
     "migrate": "prisma migrate dev",
     "generate": "prisma generate",
-    "seed": "prisma db seed",
     "test": "jest --coverage --runInBand",
     "test:watch": "jest --watch",
     "lint": "eslint src/",
@@ -32,8 +31,7 @@
     "nodemailer": "^6.9.11",
     "sanitize-html": "^2.12.1",
     "validator": "^13.11.0",
-    "stripe": "^14.19.0",
-    "resend": "^3.0.0"
+    "stripe": "^14.19.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.0",
@@ -53,8 +51,5 @@
       "src/**/*.js",
       "!src/app.js"
     ]
-  },
-  "prisma": {
-    "seed": "node prisma/seed.js"
   }
 }
