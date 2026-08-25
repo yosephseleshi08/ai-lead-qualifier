@@ -1,13 +1,14 @@
 {
   "name": "ai-lead-qualifier-backend",
   "version": "2.1.0",
-  "description": "Enterprise AI Lead Qualification Platform",
+  "description": "Enterprise AI Lead Qualification Platform — BYOK Edition",
   "main": "src/app.js",
   "scripts": {
     "start": "node src/app.js",
     "dev": "nodemon src/app.js",
     "migrate": "prisma migrate dev",
     "generate": "prisma generate",
+    "seed": "prisma db seed",
     "test": "jest --coverage --runInBand",
     "test:watch": "jest --watch",
     "lint": "eslint src/",
@@ -31,7 +32,8 @@
     "nodemailer": "^6.9.11",
     "sanitize-html": "^2.12.1",
     "validator": "^13.11.0",
-    "stripe": "^14.19.0"
+    "stripe": "^14.19.0",
+    "resend": "^3.0.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.0",
@@ -41,14 +43,18 @@
     "eslint": "^8.57.0",
     "prettier": "^3.2.5"
   },
-  "engines": { "node": ">=18.0.0" },
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "jest": {
     "testEnvironment": "node",
     "coverageDirectory": "coverage",
-    "collectCoverageFrom": ["src/**/*.js", "!src/app.js"]
+    "collectCoverageFrom": [
+      "src/**/*.js",
+      "!src/app.js"
+    ]
   },
-  "dependencies": {
-    ...existing dependencies...,
-    "resend": "^3.0.0"
+  "prisma": {
+    "seed": "node prisma/seed.js"
   }
 }
