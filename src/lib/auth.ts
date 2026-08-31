@@ -10,7 +10,6 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        // Demo auth - replace with your backend API call
         if (credentials?.email === "demo@example.com" && credentials?.password === "demo123456") {
           return {
             id: "usr_1",
@@ -19,7 +18,7 @@ export const authOptions: NextAuthOptions = {
             image: "https://ui-avatars.com/api/?name=Alex+Morgan&background=3b82f6&color=fff",
             role: "owner",
             tenantId: "tnt_1",
-          };
+          } as any;
         }
         return null;
       },
@@ -31,8 +30,8 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.role = user.role;
-        token.tenantId = user.tenantId;
+        token.role = (user as any).role;
+        token.tenantId = (user as any).tenantId;
       }
       return token;
     },
@@ -46,6 +45,6 @@ export const authOptions: NextAuthOptions = {
   },
   session: {
     strategy: "jwt",
-    maxAge: 30 * 24 * 60 * 60, // 30 days
+    maxAge: 30 * 24 * 60 * 60,
   },
 };
