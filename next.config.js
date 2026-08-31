@@ -4,9 +4,7 @@ const nextConfig = {
   images: {
     domains: ["localhost", "images.unsplash.com", "ui-avatars.com"],
   },
-  experimental: {
-    serverActions: true,
-  },
+  // experimental: { // ✅ You can delete this entire block
+  //   serverActions: true,
+  // },
 };
-
-module.exports = nextConfig;
