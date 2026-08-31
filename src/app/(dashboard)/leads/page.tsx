@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { motion } from "framer-motion";
 import { LeadTable } from "@/components/leads/lead-table";
 import { LeadFilters } from "@/components/leads/lead-filters";
@@ -15,6 +15,7 @@ export default function LeadsPage() {
   const [isUploading, setIsUploading] = useState(false);
   const [isScoring, setIsScoring] = useState(false);
   const [error, setError] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -70,6 +71,7 @@ export default function LeadsPage() {
     } finally {
       setIsUploading(false);
       setIsScoring(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
 
@@ -117,11 +119,11 @@ export default function LeadsPage() {
           </motion.p>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={() => alert("Import feature coming soon! Use the AI Upload card below.")}>
             <Upload className="w-4 h-4 mr-2" />
             Import
           </Button>
-          <Button size="sm">
+          <Button size="sm" onClick={() => alert("Add Lead feature coming soon!")}>
             <Plus className="w-4 h-4 mr-2" />
             Add Lead
           </Button>
@@ -146,7 +148,7 @@ export default function LeadsPage() {
             All new leads are automatically scored based on your ICP and historical deal patterns
           </p>
         </div>
-        <Button variant="outline" size="sm" className="shrink-0">
+        <Button variant="outline" size="sm" className="shrink-0" onClick={() => alert("AI configuration coming soon!")}>
           Configure
         </Button>
       </motion.div>
@@ -182,15 +184,16 @@ export default function LeadsPage() {
             )}
 
             {scoredLeads.length === 0 && !isScoring && (
-              <label className="cursor-pointer inline-block">
+              <>
                 <input
+                  ref={fileInputRef}
                   type="file"
                   accept=".csv"
                   className="hidden"
                   onChange={handleFileUpload}
                   disabled={isUploading || isScoring}
                 />
-                <Button disabled={isUploading || isScoring}>
+                <Button onClick={() => fileInputRef.current?.click()} disabled={isUploading || isScoring}>
                   {isUploading ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -203,7 +206,7 @@ export default function LeadsPage() {
                     </>
                   )}
                 </Button>
-              </label>
+              </>
             )}
 
             {isScoring && (
