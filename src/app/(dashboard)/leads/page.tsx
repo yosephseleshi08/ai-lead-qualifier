@@ -66,6 +66,52 @@ export default function LeadsPage() {
 
       {/* Filters */}
       <LeadFilters />
+      {/* Real AI Scoring Section */}
+<div className="mt-8 p-6 rounded-2xl bg-gradient-to-r from-violet-50 to-blue-50 dark:from-violet-900/20 dark:to-blue-900/20 border border-violet-100 dark:border-violet-800">
+  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+    Upload Real Leads for AI Scoring
+  </h3>
+  <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+    Upload a CSV with name, email, company, source, notes. Our DeepSeek AI will score each lead 0-100.
+  </p>
+  <input
+    type="file"
+    accept=".csv"
+    onChange={async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      const text = await file.text();
+      const lines = text.split("\n").filter(l => l.trim());
+      const headers = lines[0].split(",").map(h => h.trim().toLowerCase());
+      const parsed = lines.slice(1).map(line => {
+        const values = line.split(",");
+        const obj: any = {};
+        headers.forEach((h, i) => obj[h] = values[i]?.trim() || "");
+        return {
+          name: obj.name || "Unknown",
+          email: obj.email || "",
+          company: obj.company || "",
+          source: obj.source || "Import",
+          notes: obj.notes || ""
+        };
+      }).filter(l => l.name !== "Unknown" || l.email);
+      
+      const res = await fetch("/api/score-leads", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ leads: parsed.slice(0, 10) })
+      });
+      const data = await res.json();
+      if (data.leads) {
+        alert(`Scored ${data.leads.length} leads! Check console.`);
+        console.table(data.leads.map((l: any) => ({ name: l.name, score: l.score, category: l.category, action: l.recommendedAction })));
+      } else {
+        alert("Error: " + (data.details || data.error));
+      }
+    }}
+    className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-violet-50 file:text-violet-700 hover:file:bg-violet-100"
+  />
+</div>
 
       {/* Table */}
       <LeadTable />
