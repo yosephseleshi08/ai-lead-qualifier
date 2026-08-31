@@ -51,7 +51,7 @@ Respond in this exact JSON format:
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "deepseek-ai/deepseek-v4-flash",
+          model: "moonshotai/kimi-k3",,
           messages: [{ role: "user", content: prompt }],
           response_format: { type: "json_object" },
           max_tokens: 300,
