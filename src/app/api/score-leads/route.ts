@@ -15,8 +15,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No leads provided" }, { status: 400 });
     }
 
-    // NVIDIA NIM free tier: ~40 requests per minute
-    // We batch leads to avoid rate limits
+    if (!process.env.NVIDIA_API_KEY) {
+      console.error("NVIDIA_API_KEY is not set");
+      return NextResponse.json(
+        { error: "Server misconfigured: NVIDIA_API_KEY missing" },
+        { status: 500 }
+      );
+    }
+
     const scoredLeads = [];
     
     for (const lead of leads.slice(0, 20)) {
@@ -66,16 +72,26 @@ Respond in this exact JSON format:
         throw new Error("Invalid response from NVIDIA NIM");
       }
 
-      const aiResult = JSON.parse(data.choices[0].message.content);
+      let aiResult;
+      try {
+        aiResult = JSON.parse(data.choices[0].message.content);
+      } catch (parseErr) {
+        console.error("JSON parse failed. Raw content:", data.choices[0].message.content);
+        throw new Error("AI returned invalid JSON");
+      }
 
       scoredLeads.push({
         id: Math.random().toString(36).substring(2, 15),
         ...lead,
-        ...aiResult,
+        score: aiResult.score ?? 50,
+        category: aiResult.category ?? "Warm",
+        reasoning: aiResult.reasoning ?? "No insight available",
+        recommendedAction: aiResult.recommendedAction ?? "Follow up",
+        confidence: aiResult.confidence ?? 50,
         scoredAt: new Date().toISOString(),
       });
 
-      // Small delay to respect ~40 RPM rate limit
+      // Respect NVIDIA free tier ~40 RPM rate limit
       await new Promise((r) => setTimeout(r, 1500));
     }
 
