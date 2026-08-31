@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { signOut } from "next-auth/react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +16,8 @@ import {
   Loader2,
   Download,
   FileSpreadsheet,
+  LogOut,
+  Sparkles,
 } from "lucide-react";
 
 export default function DashboardPage() {
@@ -34,6 +37,8 @@ export default function DashboardPage() {
     try {
       const text = await file.text();
       const lines = text.split("\n").filter((l) => l.trim());
+      if (lines.length < 2) throw new Error("CSV must have a header row and at least one data row");
+
       const headers = lines[0].split(",").map((h) => h.trim().toLowerCase());
 
       const parsed = lines.slice(1).map((line) => {
@@ -51,6 +56,8 @@ export default function DashboardPage() {
         };
       }).filter((l) => l.name !== "Unknown" || l.email);
 
+      if (parsed.length === 0) throw new Error("No valid leads found in CSV");
+
       setIsUploading(false);
       setIsScoring(true);
 
@@ -63,13 +70,13 @@ export default function DashboardPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.details || data.error || "Unknown API error");
+        throw new Error(data.details || data.error || `Server error: ${res.status}`);
       }
 
       setLeads(data.leads || []);
     } catch (err: any) {
       console.error(err);
-      setError(err.message || "Something went wrong");
+      setError(err.message || "Something went wrong. Check your NVIDIA API key.");
     } finally {
       setIsUploading(false);
       setIsScoring(false);
@@ -105,8 +112,21 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 p-6">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
+      {/* Top Nav */}
+      <nav className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-6 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-600 to-violet-600 flex items-center justify-center">
+            <Sparkles className="w-4 h-4 text-white" />
+          </div>
+          <span className="font-bold text-gray-900 dark:text-white">LeadIQ</span>
+        </div>
+        <Button variant="ghost" size="sm" onClick={() => signOut({ callbackUrl: "/login" })}>
+          <LogOut className="w-4 h-4 mr-2" /> Sign Out
+        </Button>
+      </nav>
+
+      <div className="p-6 max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
@@ -191,9 +211,10 @@ export default function DashboardPage() {
             <div className="inline-flex items-center gap-3 px-6 py-3 rounded-full bg-violet-50 dark:bg-violet-900/20 border border-violet-100 dark:border-violet-800">
               <Brain className="w-5 h-5 text-violet-600 animate-pulse" />
               <span className="text-sm font-medium text-violet-700 dark:text-violet-300">
-                AI is analyzing your leads...
+                DeepSeek AI is analyzing your leads...
               </span>
             </div>
+            <p className="text-xs text-gray-400 mt-3">This takes ~10 seconds per lead on the free tier</p>
           </div>
         )}
 
