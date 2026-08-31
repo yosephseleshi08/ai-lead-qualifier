@@ -23,19 +23,19 @@ const features = [
   {
     icon: Brain,
     title: "AI Lead Scoring",
-    description: "Our GPT-4 powered engine scores leads with 94.7% accuracy, analyzing behavioral signals, company data, and engagement patterns.",
+    description: "Our DeepSeek AI engine scores leads with intelligent accuracy, analyzing behavioral signals, company data, and engagement patterns.",
     color: "from-violet-500 to-purple-600",
   },
   {
     icon: Zap,
     title: "Smart Prioritization",
-    description: "Automatically surface hot leads that are 87% likely to convert. Never miss a high-value opportunity again.",
+    description: "Automatically surface hot leads that are most likely to convert. Never miss a high-value opportunity again.",
     color: "from-amber-500 to-orange-600",
   },
   {
     icon: TrendingUp,
     title: "Revenue Forecasting",
-    description: "AI predicts your quarterly revenue with 87% confidence, factoring in pipeline velocity and deal risk.",
+    description: "AI predicts your quarterly revenue with confidence, factoring in pipeline velocity and deal risk.",
     color: "from-emerald-500 to-teal-600",
   },
   {
@@ -126,7 +126,7 @@ export default function LandingPage() {
           >
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 mb-8">
               <Sparkles className="w-4 h-4 text-blue-600" />
-              <span className="text-sm font-medium text-blue-700 dark:text-blue-300">Now with GPT-4 AI Copilot</span>
+              <span className="text-sm font-medium text-blue-700 dark:text-blue-300">Now with DeepSeek AI Scoring</span>
             </div>
             <h1 className="text-4xl sm:text-5xl lg:text-7xl font-bold text-gray-900 dark:text-white leading-tight">
               Close More Deals with{" "}
@@ -135,7 +135,7 @@ export default function LandingPage() {
             </h1>
             <p className="mt-6 text-lg sm:text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto">
               The complete white-label lead qualification platform that scores, prioritizes, and converts leads 
-              with 94.7% AI accuracy. Deploy in hours, not months.
+              with AI accuracy. Deploy in hours, not months.
             </p>
             <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link href="/login">
@@ -156,7 +156,7 @@ export default function LandingPage() {
             transition={{ delay: 0.3, duration: 0.6 }}
             className="mt-20 grid grid-cols-2 lg:grid-cols-4 gap-8"
           >
-            {stats.map((stat, i) => (
+            {stats.map((stat) => (
               <div key={stat.label} className="text-center">
                 <p className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white">{stat.value}</p>
                 <p className="text-sm text-gray-500 mt-1">{stat.label}</p>
@@ -201,7 +201,7 @@ export default function LandingPage() {
                     <Brain className="w-5 h-5 text-violet-600" />
                     <span className="font-semibold text-sm">AI Copilot</span>
                   </div>
-                  <p className="text-xs text-gray-600 dark:text-gray-400">"Sarah Chen is 87% likely to convert. Schedule demo within 24h."</p>
+                  <p className="text-xs text-gray-600 dark:text-gray-400">&quot;Sarah Chen is 87% likely to convert. Schedule demo within 24h.&quot;</p>
                 </div>
                 <div className="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800">
                   <p className="text-xs font-medium text-emerald-700 dark:text-emerald-300">+24.3% vs last month</p>
@@ -373,7 +373,7 @@ export default function LandingPage() {
             <span className="font-bold text-gray-900 dark:text-white">LeadIQ</span>
           </div>
           <p className="text-sm text-gray-500">
-            © 2024 LeadIQ. All rights reserved. Built for sales teams that win.
+            &copy; 2024 LeadIQ. All rights reserved. Built for sales teams that win.
           </p>
         </div>
       </footer>
