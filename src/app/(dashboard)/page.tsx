@@ -1,78 +1,99 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { getScoreColor, getScoreBg, formatNumber } from "@/lib/utils";
+import { getScoreColor, getScoreBg } from "@/lib/utils";
 import {
   Upload,
   Brain,
   TrendingUp,
   Users,
-  DollarSign,
   ArrowUpRight,
   ArrowDownRight,
   Loader2,
   Download,
+  FileSpreadsheet,
 } from "lucide-react";
 
 export default function DashboardPage() {
-  const router = useRouter();
   const [leads, setLeads] = useState<any[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [isScoring, setIsScoring] = useState(false);
+  const [error, setError] = useState("");
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    setError("");
     setIsUploading(true);
-    const text = await file.text();
-    const lines = text.split("\n").filter((l) => l.trim());
-    const headers = lines[0].split(",").map((h) => h.trim().toLowerCase());
-
-    const parsed = lines.slice(1).map((line) => {
-      const values = line.split(",");
-      const obj: any = {};
-      headers.forEach((h, i) => {
-        obj[h] = values[i]?.trim() || "";
-      });
-      return {
-        name: obj.name || obj.full_name || "Unknown",
-        email: obj.email || "",
-        company: obj.company || obj.organization || "",
-        source: obj.source || obj.lead_source || "Import",
-        notes: obj.notes || obj.message || "",
-      };
-    });
-
-    setIsUploading(false);
-    setIsScoring(true);
-
-    // Call your FREE DeepSeek API
-    const res = await fetch("/api/score-leads", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ leads: parsed.slice(0, 20) }), // Score first 20 for speed
-    });
-
-    const data = await res.json();
-    setLeads(data.leads || []);
     setIsScoring(false);
+
+    try {
+      const text = await file.text();
+      const lines = text.split("\n").filter((l) => l.trim());
+      const headers = lines[0].split(",").map((h) => h.trim().toLowerCase());
+
+      const parsed = lines.slice(1).map((line) => {
+        const values = line.split(",");
+        const obj: any = {};
+        headers.forEach((h, i) => {
+          obj[h] = values[i]?.trim() || "";
+        });
+        return {
+          name: obj.name || obj.full_name || "Unknown",
+          email: obj.email || "",
+          company: obj.company || obj.organization || "",
+          source: obj.source || obj.lead_source || "Import",
+          notes: obj.notes || obj.message || "",
+        };
+      }).filter((l) => l.name !== "Unknown" || l.email);
+
+      setIsUploading(false);
+      setIsScoring(true);
+
+      const res = await fetch("/api/score-leads", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ leads: parsed.slice(0, 20) }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.details || data.error || "Unknown API error");
+      }
+
+      setLeads(data.leads || []);
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || "Something went wrong");
+    } finally {
+      setIsUploading(false);
+      setIsScoring(false);
+    }
   };
 
   const hotLeads = leads.filter((l) => l.category === "Hot");
   const warmLeads = leads.filter((l) => l.category === "Warm");
   const avgScore = leads.length
-    ? Math.round(leads.reduce((a, b) => a + b.score, 0) / leads.length)
+    ? Math.round(leads.reduce((a, b) => a + (b.score || 0), 0) / leads.length)
     : 0;
 
   const exportCSV = () => {
     const headers = ["Name", "Email", "Company", "Score", "Category", "Reasoning", "Action"];
     const rows = leads.map((l) =>
-      [l.name, l.email, l.company, l.score, l.category, l.reasoning, l.recommendedAction].join(",")
+      [
+        `"${l.name}"`,
+        `"${l.email}"`,
+        `"${l.company}"`,
+        l.score,
+        l.category,
+        `"${l.reasoning}"`,
+        `"${l.recommendedAction}"`,
+      ].join(",")
     );
     const csv = [headers.join(","), ...rows].join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
@@ -101,12 +122,19 @@ export default function DashboardPage() {
           </div>
         </div>
 
+        {/* Error */}
+        {error && (
+          <div className="mb-6 p-4 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 text-red-700 dark:text-red-300 text-sm">
+            <strong>Error:</strong> {error}
+          </div>
+        )}
+
         {/* Stats */}
         {leads.length > 0 && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8"
+            className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8"
           >
             <StatCard icon={Users} label="Total Leads" value={leads.length} />
             <StatCard icon={TrendingUp} label="Avg Score" value={`${avgScore}/100`} />
@@ -116,22 +144,23 @@ export default function DashboardPage() {
         )}
 
         {/* Upload */}
-        {leads.length === 0 && (
+        {leads.length === 0 && !isScoring && (
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-2xl p-12 text-center bg-white dark:bg-gray-900"
           >
             <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center">
-              <Upload className="w-8 h-8 text-blue-600" />
+              <FileSpreadsheet className="w-8 h-8 text-blue-600" />
             </div>
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
               Upload Your Leads
             </h3>
             <p className="text-gray-500 dark:text-gray-400 mb-6 max-w-md mx-auto">
-              Upload a CSV with columns: name, email, company, source, notes. Our AI will score each lead in seconds.
+              Upload a CSV with columns: <code>name, email, company, source, notes</code>. 
+              Our AI will score each lead in seconds.
             </p>
-            <label className="cursor-pointer">
+            <label className="cursor-pointer inline-block">
               <Input
                 type="file"
                 accept=".csv"
@@ -140,15 +169,15 @@ export default function DashboardPage() {
                 disabled={isUploading || isScoring}
               />
               <Button size="lg" disabled={isUploading || isScoring}>
-                {isScoring ? (
+                {isUploading ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    AI Scoring {isUploading ? "Parsing..." : `${leads.length} leads...`}
+                    Parsing CSV...
                   </>
                 ) : (
                   <>
                     <Upload className="w-4 h-4 mr-2" />
-                    {isUploading ? "Parsing CSV..." : "Upload CSV"}
+                    Upload CSV
                   </>
                 )}
               </Button>
@@ -157,12 +186,12 @@ export default function DashboardPage() {
         )}
 
         {/* Scoring Loader */}
-        {isScoring && leads.length === 0 && (
+        {isScoring && (
           <div className="mt-8 text-center">
             <div className="inline-flex items-center gap-3 px-6 py-3 rounded-full bg-violet-50 dark:bg-violet-900/20 border border-violet-100 dark:border-violet-800">
               <Brain className="w-5 h-5 text-violet-600 animate-pulse" />
               <span className="text-sm font-medium text-violet-700 dark:text-violet-300">
-                DeepSeek-V4 is analyzing your leads...
+                AI is analyzing your leads...
               </span>
             </div>
           </div>
